@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-app
+  template:
+    metadata:
+      labels:
+        app: demo-app
+    spec:
+      containers:
+      - name: web
+        image: hashicorp/http-echo:latest
+        # This app accepts an argument to print custom text
+        args:
+        - "-text=Environment: $(ENV_NAME). Message: $(MSG). DB Password: $(PASSWORD)."
+        ports:
+        - containerPort: 5678
+        env:
+        - name: ENV_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: APP_ENV
+        - name: MSG
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: WELCOME_MSG
+        - name: PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secret
+              key: DB_PASSWORD
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-service
+spec:
+  ports:
+  - port: 80
+    targetPort: 5678
+  selector:
+    app: demo-app
+
